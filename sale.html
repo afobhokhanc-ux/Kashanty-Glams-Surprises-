@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Build Your Gift Box | KGS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="favicon.jpg">
+<style>
+:root {
+  --primary: #111;
+  --accent: #c08cff;
+  --bg: #f6f6f6;
+  --card: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: #222;
+}
+
+/* HEADER */
+.header {
+  background: var(--card);
+  padding: 18px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 22px;
+  border-bottom: 1px solid #eee;
+}
+
+/* PAGE */
+.page {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+
+.intro {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.intro p {
+  color: #666;
+  font-size: 15px;
+}
+
+/* LAYOUT */
+.builder {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .builder { grid-template-columns: 1fr; }
+}
+
+/* PRODUCTS */
+.products {
+  background: var(--card);
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  margin-bottom: 12px;
+  cursor: grab;
+  transition: .2s;
+}
+
+.product:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
+}
+
+.product img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.product-info { flex: 1; }
+
+.product button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+/* GIFT BOX */
+.giftbox {
+  background: linear-gradient(135deg, #fff, #faf7ff);
+  padding: 20px;
+  border-radius: 18px;
+  border: 2px dashed var(--accent);
+}
+
+.giftbox ul {
+  list-style: none;
+  padding: 0;
+}
+
+.giftbox li {
+  display: flex;
+  justify-content: space-between;
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.remove {
+  color: crimson;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.total {
+  margin-top: 12px;
+  font-weight: 700;
+}
+
+.discount {
+  font-size: 14px;
+  color: green;
+}
+
+.checkout {
+  margin-top: 15px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 30px;
+  border: none;
+  background: linear-gradient(135deg, #111, #333);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.drag-hint {
+  font-size: 13px;
+  color: #777;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">KGS 🎁</div>
+
+<div class="page">
+  <div class="intro">
+    <h1>Curate Your Gift Box</h1>
+    <p>Drag items or tap “Add”.  
+    <strong>10% discount</strong> when box is full 🎉</p>
+  </div>
+
+  <div class="builder">
+
+    <!-- PRODUCTS -->
+    <div class="products">
+      <h3>Available Products</h3>
+      <div id="productList"></div>
+      <div class="drag-hint">🖱️ Drag items into the gift box</div>
+    </div>
+
+    <!-- GIFT BOX -->
+    <div class="giftbox" ondrop="drop(event)" ondragover="allowDrop(event)">
+      <h3>Your Gift Box</h3>
+      <div><span id="count">0</span>/4 items</div>
+      <ul id="boxItems"></ul>
+      <div class="total">Total: ₦<span id="total">0</span></div>
+      <div class="discount" id="discount"></div>
+      <button class="checkout" onclick="checkout()">Checkout via WhatsApp</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ----------------------------------
+   CONFIG
+---------------------------------- */
+const MAX_ITEMS = 4;
+const DISCOUNT_RATE = 0.01;
+
+/* ----------------------------------
+   LOAD PRODUCTS FROM SHOP STORAGE
+---------------------------------- */
+const products = JSON.parse(localStorage.getItem("products")) || [];
+
+// fallback (in case shop page not visited yet)
+if (!products.length) {
+  products.push(
+
+  { id:1, name:"Facemask", price:500, category:"Facemask", image:"face.jpg", description:"Soft and comfortable for the face." },
+  { id:2, name:"Facemask", price:500, category:"Facemask", image:"fm.jpg", description:"Soft and smooth feeling." },
+  { id:3, name:"Necklace Elegant", price:2500, category:"Necklace", image:"necklace.jpg", description:"Gold-plated necklace." },
+  { id:4, name:"Earrings Cute", price:2500, category:"Earring", image:"earing.jpg", description:"Stylish hoop earrings." },
+  { id:5, name:"Bracelet Charm", price:4500, category:"Bracelet", image:"charm bracelet.jpg", description:"Beaded charm bracelet." },
+  { id:6, name:"Lipgloss Shine", price:1500, category:"Lipgloss", image:"lipgloss.jpg", description:"High-shine lipgloss." },
+  { id:7, name:"Lipliner Smooth", price:500, category:"Lipliner", image:"lipliner.jpg", description:"Long-lasting lipliner." },
+  { id:8, name:"Keychain Cute", price:2500, category:"Keychain", image:"keychain.jpg", description:"Gift-ready keychain." },
+  { id:9, name:"Floral Claw", price:2000, category:"Claw Clip", image:"Floral claw clip.jpg", description:"Easy to use head clip." },
+  { id:10, name:"Claw", price:2000, category:"Claw Clip", image:"claw.jpg", description:"Easy to use head clip." },
+  { id:11, name:"Arm Candy", price:3500, category:"Arm Candy", image:"arm candy.jpg", description:"Stylish arm candy that elevate any outfit." },
+  { id:12, name:"Claw Clip", price:2000, category:"Claw Clip", image:"clip.jpg", description:"BRB." },
+  { id:13, name:"Floral Claw Clip", price:2500, category:"Claw Clip", image:"flo clip.jpg", description:"Perfect for you❤️." },
+  { id:14, name:"Dainty Necklace Gold", price:3500, category:"Necklace", image:"density necklace.jpg", description:"Matches any dress." },
+  { id:15, name:"Dainty Necklace", price:3500, category:"Necklace", image:"dainty2.jpg", description:"Matches any dress." },
+  { id:16, name:"Peel off Lipgloss", price:2500, category:"Lipgloss", image:"lipgloss remove.jpg", description:"Perfect for your lips." },
+  { id:17, name:"Floral Earring", price:2500, category:"Earring", image:"floral earring.jpg", description:"Matches any dress." },
+  { id:18, name:"Acrylic Earring", price:1000, category:"Earring", image:"earri ng.jpg", description:"Matches any dress." },
+  { id:19, name:"Lipliner", price:500, category:"Lipliner", image:"2lip.jpg", description:"Brings out the shape of your lips." },
+  { id:20, name:"Peel off Lipgloss", price:2500, category:"Lipgloss", image:"lipliner remover2.jpg", description:"Perfect for your lips." },
+  /**{ id:21, name:"Peel off Lipgloss", price:2500, category:"Lipgloss", image:"lipliner remover2.jpg", description:"BRB." }, **/ 
+  { id:22, name:"KeyChain", price:3000, category:"KeyChain", image:"22.jpg", description:"Fashionable keychain for you." },
+  { id:23, name:"KeyChain", price:3000, category:"KeyChain", image:"23.jpg", description:"Fashionable keychain for you." },
+  { id:24, name:"KeyChain", price:3000, category:"KeyChain", image:"24.jpg", description:"Fashionable keychain for you." },
+  { id:25, name:"KeyChain", price:3000, category:"KeyChain", image:"25.jpg", description:"Fashionable keychain for you." },
+  { id:26, name:"Statement Earring", price:2500, category:"Earring", image:"26.jpg", description:"Matches any dress." },
+  { id:27, name:"Statement Earring", price:4500, category:"Earring", image:"27.jpg", description:"Matches any dress." },
+  { id:28, name:"Statement Earring", price:2500, category:"Earring", image:"28.jpg", description:"Matches any dress." },
+  { id:29, name:"Statement Earring", price:2500, category:"Earring", image:"29.jpg", description:"Matches any dress." },
+  /** { id:30, name:"Peel off Lipgloss", price:2500, category:"Lipgloss", image:"30.jpg", description:"BRB." }, **/
+  { id:31, name:"Lip Mask", price:700, category:"Lip Mask", image:"31.jpg", description:"Nourish and repair your lips." },
+  { id:32, name:"Eye Mask", price:700, category:"Eye Mask", image:"32.jpg", description:"Treat the delicate skin around your eyes." },
+  { id:33, name:"Eye Mask", price:700, category:"Eye Mask", image:"33.jpg", description:"Treat the delicate skin around your eyes." },
+  { id:34, name:"Lip Mask(Orange Moisturizer)", price:700, category:"Lip Mask", image:"34.jpg", description:"Nourish and repair your lips." },
+  { id:35, name:"Lip Mask(Cherry Pink Tender)", price:700, category:"Lip Mask", image:"35.jpg", description:"Nourish and repair your lips." },
+  { id:36, name:"Lip Mask(Honey Peach Repair)", price:700, category:"Lip Mask", image:"36.jpg", description:"Nourish and repair your lips." },
+  { id:37, name:"Lip Mask(Aloe Vera Hydrate)", price:700, category:"Lip Mask", image:"37.jpg", description:"Nourish and repair your lips." },
+  { id:38, name:"Lipgloss", price:1500, category:"Lipgloss", image:"38.jpg", description:"Suitable for your lips." },
+  { id:39, name:"Lip Mask(Coconut Hydrate)", price:2500, category:"Lip Mask", image:"39.jpg", description:"Nourish and repair your lips." },
+  { id:40, name:"Hair Bow", price:2000, category:"Hair Bow", image:"40.jpg", description:"Style your hair with fashionable Hair bow." },
+  { id:41, name:"Hair Bow", price:2000, category:"Hair Bow", image:"41.jpg", description:"Style your hair with fashionable Hair bow" },
+  { id:42, name:"Hair Band", price:1500, category:"Hair Band", image:"42.jpg", description:"Style your hair with fashionable Hair band." },
+  { id:43, name:"Hair Band", price:1500, category:"Hair Band", image:"43.jpg", description:"Style your hair with fashionable Hair band." },
+  { id:44, name:"Hair Band", price:1500, category:"Hair Band", image:"44.jpg", description:"Style your hair with fashionable Hair band." },
+  { id:45, name:"Hair Band", price:2500, category:"Hair Band", image:"45.jpg", description:"Style your hair with fashionable Hair band." },
+  { id:46, name:"Floral Claw Clip", price:2500, category:"Claw Clip", image:"46.jpg", description:"Style your hair with fashionable Claw clip." },
+  { id:47, name:"Hair Band", price:1500, category:"Hair Band", image:"47.jpg", description:"Style your hair with fashionable Hair band." },
+  { id:48, name:"Hair Band", price:1500, category:"Hair Band", image:"48.jpg", description:"Style your hair with fashionable Hair band." },
+  { id:49, name:"Floral Claw Clip", price:2000, category:"Claw Clip", image:"49.jpg", description:"Style your hair with fashionable Claw Clip." },
+  { id:50, name:"Floral Claw Clip", price:2000, category:"Claw Clip", image:"50.jpg", description:"Style your hair with fashionable Claw clip." }
+
+  );
+}
+
+/* ----------------------------------
+   STATE
+---------------------------------- */
+let giftBox = [];
+
+/* ----------------------------------
+   RENDER PRODUCTS
+---------------------------------- */
+const productList = document.getElementById("productList");
+
+products.forEach(p => {
+  const div = document.createElement("div");
+  div.className = "product";
+  div.draggable = true;
+  div.dataset.id = p.id;
+
+  div.ondragstart = e => e.dataTransfer.setData("id", p.id);
+
+  div.innerHTML = `
+    <img src="${p.image}">
+    <div class="product-info">
+      <h4>${p.name}</h4>
+      <span>₦${p.price.toLocaleString()}</span>
+    </div>
+    <button onclick="addToGiftBox(${p.id})">Add</button>
+  `;
+
+  productList.appendChild(div);
+});
+
+/* ----------------------------------
+   GIFT BOX LOGIC
+---------------------------------- */
+function addToGiftBox(id) {
+  if (giftBox.length >= MAX_ITEMS) {
+    alert("Gift box is full 🎁");
+    return;
+  }
+
+  const product = products.find(p => p.id == id);
+  giftBox.push(product);
+  updateUI();
+}
+
+function removeItem(i) {
+  giftBox.splice(i, 1);
+  updateUI();
+}
+
+function updateUI() {
+  const list = document.getElementById("boxItems");
+  const totalEl = document.getElementById("total");
+  const countEl = document.getElementById("count");
+  const discountEl = document.getElementById("discount");
+
+  list.innerHTML = "";
+  let total = 0;
+
+  giftBox.forEach((item, i) => {
+    total += item.price;
+    const li = document.createElement("li");
+    li.innerHTML = `
+      ${item.name}
+      <span class="remove" onclick="removeItem(${i})">✕</span>
+    `;
+    list.appendChild(li);
+  });
+
+  if (giftBox.length === MAX_ITEMS) {
+    const discount = total * DISCOUNT_RATE;
+    total -= discount;
+    discountEl.textContent = `🎉 10% Discount Applied (-₦${discount.toLocaleString()})`;
+  } else {
+    discountEl.textContent = "";
+  }
+
+  totalEl.textContent = total.toLocaleString();
+  countEl.textContent = giftBox.length;
+}
+
+/* ----------------------------------
+   DRAG & DROP
+---------------------------------- */
+function allowDrop(e) { e.preventDefault(); }
+function drop(e) {
+  e.preventDefault();
+  addToGiftBox(e.dataTransfer.getData("id"));
+}
+
+/* ----------------------------------
+   WHATSAPP CHECKOUT
+---------------------------------- */
+function checkout() {
+  if (!giftBox.length) {
+    alert("Your gift box is empty");
+    return;
+  }
+
+  let msg = "Hello, I want to order a custom gift box:%0A";
+  let total = 0;
+
+  giftBox.forEach(p => {
+    msg += `- ${p.name} (₦${p.price})%0A`;
+    total += p.price;
+  });
+
+  if (giftBox.length === MAX_ITEMS) {
+    total -= total * DISCOUNT_RATE;
+    msg += "🎉 10% Discount Applied%0A";
+  }
+
+  msg += `%0ATotal: ₦${total.toLocaleString()}`;
+
+  window.open("https://wa.me/2347086445140?text=" + msg, "_blank");
+}
+</script>
+
+</body>
+</html>
